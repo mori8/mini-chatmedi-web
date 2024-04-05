@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 
-
 export default function Home() {
   const [userPrompt, setUserPrompt] = useState("");
   const [query, setQuery] = useState<string[]>([]);
@@ -36,12 +35,21 @@ export default function Home() {
             chatmini
           </h1>
         </header>
-        <div className="flex-1 flex flex-col gap-4 overflow-auto">
-          {/* 대화 목록을 화면에 표시 */}
+        <div className="flex-1 flex flex-col gap-6 overflow-y-scroll w-full">
           {query.map((item, index) => (
-            <div key={index} className="flex flex-col">
-              <div className="text-left text-blue-500">User: {item}</div>
-              <div className="text-left text-green-500">LLM: {results[index]}</div>
+            <div key={index} className="flex flex-col gap-2 w-full text-lg">
+              <div className="flex flex-row gap-2 font-bold">
+                <div>
+                  <span className="">Q.</span>
+                </div>
+                <div className="text-left">{item}</div>
+              </div>
+              <div className="flex flex-row gap-2 text-slate-600">
+                <div>
+                  <span className="">A.</span>
+                </div>
+                <div className="text-left">{results[index]}</div>
+              </div>
             </div>
           ))}
         </div>
