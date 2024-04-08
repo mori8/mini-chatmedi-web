@@ -1,31 +1,37 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useChat } from "ai/react";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 
 export default function Home() {
-  const [userPrompt, setUserPrompt] = useState("");
-  const [query, setQuery] = useState<string[]>([]);
-  const [results, setResults] = useState<string[]>([]);
+  // https://sdk.vercel.ai/docs/guides/providers/openai#wire-up-the-ui
+  const { messages, append, input, handleInputChange, handleSubmit } = useChat();
 
-  const getResults = async () => {
-    setQuery((prev) => [...prev, userPrompt]);
-    setUserPrompt("");
+  const compute = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent the form from submitting the traditional way
+    console.log("[compute] input: ", input);
 
-    const response = await fetch(
-      `http://localhost:3000/fastapi/generate-text`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt: userPrompt }),
-      }
-    );
-    // console.log("response: ", response);
-    const data = await response.json();
-    // console.log("data: ", data);
-    setResults((prev) => [...prev, data.response]);
-  };
+    // 1. task planning
+    const taskPlanningResponse = await fetch("http://localhost:3000/api/chat/task-planning", {
+      method: "POST",
+      body: JSON.stringify({ messages: [{ role: "user", content: input }] }),
+    });
+    const task = await taskPlanningResponse.json();
+    console.log("[compute] task: ", task);
+
+    // 2. model selection
+    const modelSelectionResponse = await fetch("http://localhost:3000/api/chat/model-selection", { // Corrected endpoint
+      method: "POST",
+      body: JSON.stringify({ task }),
+    });
+    const model = await modelSelectionResponse.json();
+    console.log("[compute] model: ", model);
+
+    // 3. chat
+    // Append or do something with model before submitting
+    // append({ role: "assistant", content: model.result }); // Example append, adjust according to your data structure
+    handleSubmit(e);
+  }
 
   return (
     <main className="w-screen h-screen flex flex-col items-center pb-8">
@@ -35,35 +41,22 @@ export default function Home() {
             chatmini
           </h1>
         </header>
-        <div className="flex-1 flex flex-col gap-6 overflow-y-scroll w-full">
-          {query.map((item, index) => (
-            <div key={index} className="flex flex-col gap-2 w-full text-lg">
-              <div className="flex flex-row gap-2 font-bold">
-                <div>
-                  <span className="">Q.</span>
-                </div>
-                <div className="text-left">{item}</div>
-              </div>
-              <div className="flex flex-row gap-2 text-slate-600">
-                <div>
-                  <span className="">A.</span>
-                </div>
-                <div className="text-left">{results[index]}</div>
-              </div>
+        <div className="chatbox flex-1 flex flex-col gap-6 w-full">
+          {messages.map((m) => (
+            <div key={m.id} className="whitespace-pre-wrap">
+              {m.role === "user" ? "User: " : "AI: "}
+              {m.content}
             </div>
           ))}
         </div>
-        <div className="border-2 border-gray-300 rounded-3xl px-4 py-3 w-full flex gap-4">
+        <form onSubmit={compute} className="w-full">
           <input
-            type="text"
-            value={userPrompt}
-            className="flex-1"
-            onChange={(e) => setUserPrompt(e.target.value)}
+            className="w-full py-3 px-4 border-2 border-gray-300 rounded-3xl"
+            value={input}
+            placeholder="Say something..."
+            onChange={handleInputChange}
           />
-          <button onClick={getResults} className="flex-shrink-0">
-            <PaperAirplaneIcon className="w-6 h-6 text-slate-500" />
-          </button>
-        </div>
+        </form>
       </div>
     </main>
   );
